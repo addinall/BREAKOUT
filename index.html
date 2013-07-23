@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta http-equiv="Content-type" context="text/html; charset=utf-8">
+<!-- index.html
+ 	 Mark Addinall
+	 July 2013
+	 Experimentation with the HTML5 canvas object
+     This one is the breakout game revisited in HTML5/CSS3 and Javascript.
+	 SHOULD be cross platform and responsive (to an extent.  Game canvas
+	 really doesn't re-size well.).
+
+	 I was doing this on-line course
+     https://www.udacity.com/course/viewer#!/c-cs255/l-49464373/e-73862325/m-86304040
+	 Dont bother, it sucks.  THEY make mistakes on EVERY example in the tutition.
+	 This is a result of Googling many sites including
+	 Aditya Ravi Shankar.
+
+-->
+	<title>BREAKOUT! - HTML5 experiments</title>
+	<meta name="author" context="Mark Addinall Brisbane Australia">
+	<meta name="keywords" context="HTML5, CSS3, Javascript, cross platform">
+
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+
+	<script>
+
+		$(function() {
+
+			var canvas = document.getElementById('myCanvas');
+			// jQuery has shorthand for that, = $('#myCanvas')[0];
+			// but until I REALLY want the quick and dirty shorthand,
+			// we will do it the long hand way for clarity.
+
+			var context = canvas.getContext('2d');
+
+
+			// get the sound effects from the markup below
+
+			var bounce 		= document.getElementById('bounce');
+			var explode 	= document.getElementById('explode');
+			var firework 	= document.getElementById('firework');
+			var missed 		= document.getElementById('missed');
+			var over 		= document.getElementById('over');
+
+			
+
+			// now some variable for the paddle
+
+			var lives = 3
+			var won = false;
+			var score = 0;
+			var ticks = 0;
+
+			var paddle_x = 280;
+			var paddle_y = 410;
+
+			var paddle_width = 20;
+			var paddle_height = 15;
+			var paddle_size = 4;
+
+			var paddle_deltax = 0;
+			var paddle_deltay = 0;
+
+			var paddle_move = "NONE";
+			var paddle_speedx = 10;
+
+			// and draw the paddle
+
+			function drawPaddle() {
+			
+			// very simple in this first iteration,
+			// just fill in a small rectangle.
+			// this is destined to become flasher
+			// once I have the game mechanics sorted out.
+				
+				context.fillStyle = 'black';
+				context.fillRect(	paddle_x,
+									paddle_y,
+									(paddle_width * paddle_size),
+									paddle_height);
+			}
+
+			// now variables for the ball
+
+			var ball_x = 300;
+			var ball_y = 300;
+
+			var ball_deltax = 0;
+			var ball_deltay = 0;
+
+			var ball_size = 10;
+			var ball_speed = 1;
+
+			// and draw the ball
+
+			function drawBall() {
+
+				context.fillStyle = 'lightslategray';
+				context.beginPath();
+
+				// describe an arc with the centre at ball_x, ball_y
+				// with a radius of ball_size for 0..2.PI radians.
+
+				context.arc(	ball_x,
+								ball_y,
+								ball_size,
+								0,
+								Math.PI*2,
+								true);
+
+				// and fill it
+
+				context.fill();
+			}
+
+			// now for the bricks.  starting out pretty plain
+			// looking, but when the game engine is working
+			// we will tart them up.
+
+			var bricks_per_row = 10;
+			var brick_height = 22;
+			var brick_width = canvas.width/bricks_per_row;
+
+			// now describe the playing board
+			// 1. YELLOW
+			// 2. GREEN
+			// 3. GREY
+			// 0. A GAP IN THE WALL
+
+			var bricks  = [
+					[1,1,1,1,2,2,1,1,3,1],
+					[2,2,1,1,1,0,3,3,1,1],
+					[1,1,1,3,2,1,0,2,2,2],
+					[1,2,3,0,1,2,3,0,1,2],
+					[0,0,0,0,0,0,0,0,0,0],
+					[0,1,0,0,3,0,3,0,0,2]
+					];
+			
+			// so now create the initial wall
+
+			function createBricks() {
+
+				var bricks_left = 0;
+
+				for (var i=0; i < bricks.length; i++) {
+					for (var j=0; j < bricks[i].length; j++) {
+						drawBrick(j,i,bricks[i][j]);
+						if (bricks[i][j]) {
+							bricks_left++;
+						}
+					}
+				}
+				if (bricks_left == 0) {
+					endGame(true);
+				}
+			}
+
+
+
+
+			// draw one brick only
+
+			function drawBrick(x,y,colour) {
+
+				switch(colour) {
+					case 1:
+						context.fillStyle = 'yellow';
+						break;
+					case 2:
+						context.fillStyle = 'green';
+						break;
+					case 3:
+						context.fillStyle = 'grey';
+						break;
+					default:
+						// missing brick!
+						context.clearRect(	x * brick_width,
+											y * brick_height,
+											brick_width,
+											brick_height);
+						break;
+				}
+				if (colour != 0) {
+					// fill the brick with colour and give each
+					// brick a border
+					context.fillRect(	x * brick_width,
+										y * brick_height,
+										brick_width,
+										brick_height);
+
+
+					context.strokeRect(	x * brick_width + 1,
+										y * brick_height + 1,
+										brick_width - 2,
+										brick_height - 2);
+
+				}
+			}
+
+			// and now for a scoreboard!
+			
+
+			function displayScore() {
+				context.fillStyle = 'blue';
+				context.font = "14pt MarkerFelt-Thin, Comic Sans MS";
+
+				// clear the bottom of the canvas
+
+				context.clearRect(	0,
+									canvas.height - 30,
+									canvas.width,
+									30);
+
+				// and write the score
+
+				context.fillText(	'Score: ' + score +  '      Lives: ' + lives,
+									10,
+									canvas.height - 5);
+			}
+
+			// now for the fun part!  We start moving them around!
+
+			function moveBall() {
+
+				// check to see if we are hitting anything at the top
+
+				if ((ball_y + ball_deltay - ball_size < 0) ||
+					collisionyWithBricks()) {
+					bounce.play();
+					ball_deltay = -ball_deltay;
+				}
+
+				// now the bottom
+
+				if (ball_y + ball_deltay + ball_size > canvas.height) {
+
+					// YOU LOSE!!
+					missed.play();
+					endGame(false);
+				}
+
+				// now check for side wall collisions
+
+				if ((ball_x + ball_deltax - ball_size < 0) ||
+					(ball_x + ball_deltax + ball_size > canvas.width) ||
+					collisionxWithBricks()) {
+						bounce.play();
+						ball_deltax = -ball_deltax;
+				} 
+
+				if (ball_y + ball_deltay + ball_size >= paddle_y) {
+					if (ball_x + ball_deltax >= paddle_x &&
+						ball_x + ball_deltax <= paddle_x + (paddle_width * paddle_size)) {
+							bounce.play();
+							ball_deltay = -ball_deltay;
+					}
+				}
+	
+				ball_x = ball_x + ball_deltax;
+				ball_y = ball_y + ball_deltay; 
+			}
+
+			// now the REALLY FUN BIT! Brick COLLISIONS!!
+
+
+			function collisionxWithBricks() {
+
+				var hit_x = false;
+
+				for (var i=0; i < bricks.length; i++) {
+					for (var j=0; j < bricks[i].length; j++) {
+						if (bricks[i][j]) {
+						
+						// remember we assigned an integer to the COLOUR
+						// of the brick?  Well we also use this integer
+						// as a LIFE status.  An integer value of ZERO
+						// you will remember indicates a missing brick.
+						// so, if every time the brick is hit, this value
+						// is decreased, we kill the bricks!
+
+							var brick_x = j * brick_width;
+							var brick_y = i * brick_height;
+
+							if (((ball_x + ball_deltax + ball_size >= brick_x) &&
+								(ball_x + ball_size <= brick_x))               ||
+								(ball_x + ball_deltax - ball_size <= brick_x + brick_width) &&
+								(ball_x - ball_size >= brick_x + brick_width)) {
+								if ((ball_y + ball_deltay - ball_size <= brick_y + brick_height) &&
+									(ball_y + ball_deltay + ball_size >= brick_y)) {
+									bangBrick(i,j);
+									hit_x = true;
+								}
+							}
+						}
+					}
+				}
+				return hit_x;
+			}
+
+
+			function collisionyWithBricks(){
+    			var hit_y = false;
+    			for (var i=0; i < bricks.length; i++) {
+        			for (var j=0; j < bricks[i].length; j++) {
+            			if (bricks[i][j]){
+                			var brick_x = j * brick_width;
+                			var brick_y = i * brick_height;
+                			if (
+                    			((ball_y + ball_deltay - ball_size <= brick_y + brick_height) && 
+                    			(ball_y - ball_size >= brick_y + brick_height)) ||
+                    			((ball_y + ball_deltay + ball_size >= brick_y) &&
+                    			(ball_y + ball_size <= brick_y ))){
+                    			if (ball_x + ball_deltax + ball_size >= brick_x && 
+                        			ball_x + ball_deltax - ball_size <= brick_x + brick_width){ 
+                        			bangBrick(i,j);                          
+                        			hit_y = true;
+                    			}                       
+                			}
+            			}
+        			}
+    			}
+    			return hit_y;
+			}
+ 
+			// BOOM!
+
+			function bangBrick(i,j) {
+				bricks[i][j]-- ;
+
+				if (bricks[i][j] > 0) {
+					score++ ;
+				} else {
+					explode.play();
+					score += 10 ;
+				}
+			}
+
+
+
+			function movePaddle() {
+
+				if (paddle_move ==  'LEFT') {
+					paddle_deltax = -paddle_speedx;
+				} else if (paddle_move == 'RIGHT') {
+					paddle_deltax = paddle_speedx;
+				} else {
+					paddle_deltax = 0;
+				}
+
+				// check to see if we are pressed up against the sides.
+				// if so, do not let the paddle move beyond this stop point
+
+				if (paddle_x + paddle_deltax < 0 ||
+					paddle_x + paddle_deltax + (paddle_width * paddle_size) > canvas.width) {
+						paddle_deltax = 0;
+				}
+
+				paddle_x = paddle_x + paddle_deltax;
+			}
+
+
+			function animate() {
+				context.clearRect(0,0, canvas.width, canvas.height);
+				createBricks();
+				displayScore();
+				moveBall();
+				movePaddle();
+				drawPaddle();
+				drawBall();
+			}
+	
+			// start the game by setting the interval timer
+
+			function startGame() {
+
+				context.clearRect(0, 0, canvas.width, canvas.height);
+
+				paddle_x = 280;
+				paddle_y = 410;
+
+				paddle_width = 20;
+				paddle_height = 15;
+				paddle_size = 4;
+
+				paddle_deltax = 0;
+				paddle_deltay = 0;
+
+				paddle_move = "NONE";
+				paddle_speedx = 10;
+
+				ball_deltax = -2;
+				ball_deltay = -4;
+
+				ball_x = 300;
+				ball_y = 300;
+
+				paddle_deltax = 0;
+
+				gameLoop = setInterval(animate,20);
+
+				context.strokeStyle = 'black';
+				
+				// start listening for keyboard events
+
+				$(document).keydown(function(evt) {
+					if (evt.keyCode == 39) {
+						paddle_move = "RIGHT";
+					} else if (evt.keyCode == 37) {
+						paddle_move = "LEFT";
+					}
+				});
+
+				$(document).keyup(function(evt) {
+					if (evt.keyCode == 39) {
+						paddle_move = "NONE";
+					} else if (evt.keyCode == 37) {
+						paddle_move = "NONE";
+					}
+				});
+			}
+
+			// and shut the game down with a message
+
+			function endGame(won) {
+
+				var gradient=context.createLinearGradient(5, 50, 500, 20);
+
+				gradient.addColorStop(0.1, '#F82E23');
+  				gradient.addColorStop(0.25, '#E2E651');
+  				gradient.addColorStop(0.5, '#55D268');
+  				gradient.addColorStop(0.75, '#5A77DA');
+  				gradient.addColorStop(1, '#C84489');
+  				context.fillStyle=gradient;
+				context.font = "40pt MarkerFelt-Thin, Comic Sans MS";
+  				context.shadowOffsetX=5;
+  				context.shadowOffsetY=5;
+  				context.shadowBlur=10;
+  				context.fillStyle='#000000';
+  				context.strokeStyle=gradient;
+  				context.lineWidth=3;
+				if (won) {
+  					context.strokeText("YOU WON!! HERO!!", 40, 250);
+					firework.play();
+					clearInterval(gameLoop);
+				} else {
+					lives--;
+					if (lives == 0) {
+  						context.strokeText("Better Luck next time!!!", 40, 250);
+						over.play();
+						clearInterval(gameLoop);
+					} else {
+						clearInterval(gameLoop);
+  						context.lineWidth=1;
+						alert('Life left! Try again!');
+						startGame();
+					}
+				}
+			}
+
+			startGame();
+
+		});
+
+	</script>
+
+<link href='http://fonts.googleapis.com/css?family=Reenie+Beanie|Rock+Salt' rel='stylesheet' type='text/css'>
+
+
+
+    <style type="text/css">
+
+
+/* This is the CSS3 description of the post-it stickies
+ * menu system that is driving my RETRO HTML5 movie 
+ * demonstrators.  It shows a number od CSS3 techniques.
+ * At the moment it does not cater for ANY IE at all.
+ * That's not my object in this little experiment.
+ *
+ * The system is to be PURE HTML5 and CSS3 which means
+ * NO Javascript
+ * NO formatting in the HTML viz
+ *    NO <br><hr>
+ *    NO TABLES (spit)
+ *    NO inlines (spit again)
+ *    NO .giff, .jpeg, any graphic images to decorate.
+ *
+ */
+
+body{
+  font-family:arial,sans-serif;
+  font-size:100%;
+  background:#666;
+  background: -webkit-gradient(linear, left top, left bottom, from(#000), to(#ccc));
+  background: -moz-linear-gradient(top,  #000,  #ccc);
+  color:#fff;
+}
+h1{
+  font-family:"Rock Salt",arial,sans-serif;
+  font-size:220%;
+  font-weight:normal;
+  margin:0 auto;
+  text-align:center;
+}
+
+ #myCanvas { 
+	background-color:white;
+	border:solid black; 
+    margin-left:25%;
+   	-moz-border-radius: 5px;
+   	border-radius: 5px;
+   	-moz-box-shadow: 10px 10px 5px black;
+   	-webkit-box-shadow: 10px 10px 5px black;
+   	box-shadow: 10px 10px 5px black;
+	}
+
+#footer p {
+
+    text-align:center;
+	color: black;
+	font-family: MarkerFelt-Thin, "Comic Sans MS";
+	font-size: 75%;
+}
+
+</style>
+
+</head>
+
+<body>
+	
+<audio id="bounce">
+   <source src="sfx/bounce.wav">
+   <source src="sfx/bounce.mp3" type='audio/mpeg; codecs="mp3"'>
+</audio>
+
+<audio id="explode">
+   <source src="sfx/explode.wav">
+   <source src="sfx/explode.mp3" type='audio/mpeg; codecs="mp3"'>
+</audio>
+
+<audio id="over">
+   <source src="sfx/over.wav">
+   <source src="sfx/over.mp3" type='audio/mpeg; codecs="mp3"'>
+</audio>
+
+<audio id="missed">
+   <source src="sfx/missed.wav">
+   <source src="sfx/missed.mp3" type='audio/mpeg; codecs="mp3"'>
+</audio>
+
+<audio id="firework">
+   <source src="sfx/firework.wav">
+   <source src="sfx/firework.mp3" type='audio/mpeg; codecs="mp3"'>
+</audio>
+
+
+	<h1>BREAKOUT!</h1>
+	<canvas id="myCanvas" height="460" width="700">
+	Your browser does not support HTML5 canvas objects.  You need a decent browser.
+	</canvas>
+<footer id="footer">
+<p>
+BREAKOUT!  by Mark Addinall | 2013 | Brisbane Australia
+</p>
+</footer>
+</body>
+</html>
+
