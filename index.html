@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
    <head>
-      <meta http-equiv="Content-type" context="text/html; charset=utf-8">
+   <meta http-equiv="content-type" content= "text/html; charset=UTF-8">
+
 <!-- index.html
  	 Mark Addinall
 	 July 2013
@@ -18,8 +19,8 @@
 
 -->
 	<title>BREAKOUT! - HTML5 experiments</title>
-	<meta name="author" context="Mark Addinall Brisbane Australia">
-	<meta name="keywords" context="HTML5, CSS3, Javascript, cross platform">
+	<meta name="author" content="Mark Addinall Brisbane Australia">
+	<meta name="keywords" content="HTML5, CSS3, Javascript, cross platform">
 
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
 
@@ -53,10 +54,10 @@
 			var ticks = 0;
 
 			var paddle_x = 280;
-			var paddle_y = 410;
+			var paddle_y = 416;
 
 			var paddle_width = 20;
-			var paddle_height = 15;
+			var paddle_height = 17;
 			var paddle_size = 4;
 
 			var paddle_deltax = 0;
@@ -233,7 +234,7 @@
 
 				// now the bottom
 
-				if (ball_y + ball_deltay + ball_size > canvas.height) {
+				if (ball_y + ball_deltay + ball_size >= canvas.height) {
 
 					// YOU LOSE!!
 					missed.play();
@@ -440,7 +441,7 @@
   				context.strokeStyle=gradient;
   				context.lineWidth=3;
 				if (won) {
-  					context.strokeText("YOU WON!! HERO!!", 60, 250);
+  					context.strokeText("YOU WON!! HERO!!", 80, 250);
 					firework.play();
 					clearInterval(gameLoop);
 				} else {
@@ -521,6 +522,27 @@ h1{
 	font-family: MarkerFelt-Thin, "Comic Sans MS";
 	font-size: 75%;
 }
+
+
+@media screen and (max-width: 650px) {
+
+#myCanvas {
+
+	margin: 2,2,2,2;
+}
+
+#h1 {
+	text-align: left;
+	font-size: 60%;
+}
+
+#footer {
+	text-align: left;
+}
+
+}
+
+
 
 </style>
 
