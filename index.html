@@ -97,6 +97,14 @@ $(document).ready(function(){
             var lives               = 3                                 // 3 misses, then death
             var won                 = false;                            // assume failure (NBN)
             var score               = 0;                                // 1 for hit, 10 for boom, modified
+
+
+            var tickTimer;                                              // these two are up here because of
+            var gameLoop;                                               // a scope issue.  The internal timer
+                                                                        // was not being reset correctly on
+                                                                        // partial (software driven) game
+                                                                        // restarts.
+
             var ticks               = 0;                                // by the time it takes to complete
 
             var paddle_x;                                               // arbitary place to stick the paddle
@@ -644,8 +652,8 @@ $(document).ready(function(){
 
 
 
-            //--------------------
-            function startGame() {
+            //----------------------------
+            function startGame(timer_on) {
 
                 context.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -657,11 +665,14 @@ $(document).ready(function(){
 
                 resetUniverse();
 
-                // start a second timer 
-                tickTimer = setInterval(countTicks,1000);
+                if (! timer_on) {
+                    // start a second timer 
+                    tickTimer = setInterval(countTicks,1000);
+                
+                    // start the game by setting the interval timer
+                    gameLoop = setInterval(animate,20);
+                }
 
-                // start the game by setting the interval timer
-                gameLoop = setInterval(animate,20);
 
                 context.strokeStyle = 'black';
                 
@@ -792,7 +803,7 @@ $(document).ready(function(){
                     var again = confirm("Play again?");
                     if (again) {
                         resetRuntime();
-                        startGame();                        // HAVE FUN BUSTING BRICKS!!
+                        startGame(false);                        // HAVE FUN BUSTING BRICKS!!
                     }else {
                         bye();
                    }
@@ -806,12 +817,11 @@ $(document).ready(function(){
                     if (lives == 0) {
                        croak(); 
                     } else {
-                        clearInterval(gameLoop);
                         context.lineWidth = 1;
-                        var cont = confirm('You have lives left!  Continue?');
+                        var cont = confirm('You have ' + lives  + ' lives left!  Continue?');
                         if (cont) {
                             score = score - 20;             // penalty for losing a ball!
-                            startGame();
+                            startGame(true);
                         } else {
                             croak();
                         }
@@ -842,7 +852,7 @@ $(document).ready(function(){
  
  
             $("#breaker_button").click(function() {
-                startGame();
+                startGame(false);
             });
 
         });
@@ -1071,9 +1081,9 @@ h1{
            <p class="green">Instructions</p>
            <ul>
                 <li>Hit the BUTTON to start!</li>
-                <li>Left and Right Arrow keys to move</li>
-                <li>'S' or 's' toggles the noise</li>
-                <li>Let a Ball go to quit!</li>
+                <li class="orange">Left and Right Arrow keys to move</li>
+                <li class="green">'S' or 's' toggles the noise</li>
+                <li class="red">Let a Ball go to quit!</li>
            </ul>
            <p class="orange">HAVE FUN!
            <button class="button" id="breaker_button" >START!</button> 
