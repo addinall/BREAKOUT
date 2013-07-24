@@ -40,13 +40,20 @@
         $(function() {
 
             var canvas = document.getElementById('myCanvas');
+
             // jQuery has shorthand for that, = $('#myCanvas')[0];
             // but until I REALLY want the quick and dirty shorthand,
             // we will do it the long hand way for clarity.
+            // at the moment I am only using jQuery twice.  I might
+            // dump it for this project just to save a little space
+            // on the mobile devices.
 
-            var context = canvas.getContext('2d');
+            var context = canvas.getContext('2d');                      // this is a crap naming convention
+                                                                        // and should really be changed
+                                                                        // before <canvas> gets any more
+                                                                        // complicated.
 
-            var unit_test = true;                                       // switch between test mode
+            var unit_test = false;                                      // switch between test mode
                                                                         // and game mode!
 
             // get the sound effects from the markup below
@@ -57,11 +64,23 @@
 
             var bounce      = document.getElementById('bounce');        // ball hits ANYTHING
             var explode     = document.getElementById('explode');       // brick is destroyed
+            var over        = document.getElementById('over');          // game over gurgle
             var firework    = document.getElementById('firework');      // player won!  YAH!
             var missed      = document.getElementById('missed');        // ball fell down the back
-            var over        = document.getElementById('over');          // game over gurgle
 
+            firework.volume = 1;                                        // couple of quiet SFX
+            missed.volume   = 1;                                        // the range of volume is 0 .. 1
+                                                                        // that was hard to find
             
+            bounce.volume   = 0.2;                                      // the sample volume range of 
+            explode.volume  = 0.4;                                      // the SFX i got off the net
+                                                                        // varied a GREAT deal so some
+                                                                        // volume munging became needed.
+                                                                        // either the BOING would give you
+                                                                        // a migrane and the EXPLOSION
+                                                                        // made the missus drop a glass
+                                                                        // of plonk, or you couldn't
+                                                                        // hear the applause!!!
 
             // now some variable for the paddle
 
@@ -70,29 +89,74 @@
             var score               = 0;                                // 1 for hit, 10 for boom, modified
             var ticks               = 0;                                // by the time it takes to complete
 
-            var paddle_x            = 280;                              // arbitary place to stick the paddle
-            var paddle_y            = 416;
+            var paddle_x;                                               // arbitary place to stick the paddle
+            var paddle_y;
 
-            var paddle_width        = 20;                               // there is a bug in these
-            var paddle_height       = 18;                               // numbers somewhere.  sometimes
-            var paddle_size         = 4;                                // the ball can rest on the underside
+            var paddle_width;                                           // there is a bug in these
+            var paddle_height;                                          // numbers somewhere.  sometimes
+            var paddle_size;                                            // the ball can rest on the underside
                                                                         // of the paddle for a moment????
-            var paddle_deltax       = 0;                                // pixel offsets when moving
-            var paddle_deltay       = 0;                                // the paddle
+            var paddle_deltax;                                          // pixel offsets when moving
+            var paddle_deltay;                                          // the paddle
 
-            var paddle_move         = "NONE";                           // start still
-            var paddle_speedx       = 10;                               // number of pixels to move per
+            var paddle_move;                                            // start still
+            var paddle_speedx;                                          // number of pixels to move per
                                                                         // game cycle
             // now variables for the ball
 
-            var ball_x              = 300;                              // arbitary place to stick the ball
-            var ball_y              = 300;
+            var ball_x;                                                 // arbitary place to stick the ball
+            var ball_y;
 
-            var ball_deltax         = 0;                                // pixel offsets when moving
-            var ball_deltay         = 0;                                // modified by collisions
+            var ball_deltax;                                            // pixel offsets when moving
+            var ball_deltay;                                            // modified by collisions
 
-            var ball_size           = 10;                               // RADIUS in pixels
-            var ball_speed          = 1;                                // speed multiplier
+            var ball_size;                                              // RADIUS in pixels
+            var ball_speed;                                             // speed multiplier
+
+            // now for the bricks.  starting out pretty plain
+            // looking, but when the game engine is working
+            // we will tart them up.
+
+
+            var bricks = [];                                            // empty to start.  This array
+                                                                        // is filled from two locations,
+                                                                        // initial play and play again
+
+            var bricks_per_row      = 10;                               // magic numbers.  might change
+            var brick_height        = 22;                               // based on difficulty level or
+            var brick_width         = canvas.width/bricks_per_row;      // device type
+
+
+            //------------------------
+            function setBrickWorld() {
+
+                // now describe the playing board
+                // 0. A GAP IN THE WALL
+                // 1. YELLOW    -   1 hit to EXPLODE
+                // 2. GREEN     -   2 hits to EXPLODE
+                // 3. GREY      -   3 hits to EXPLODE
+
+                if (unit_test) {                                        // what are we doing here?
+                     bricks = [                                         // to make the game interesting,
+                            [0,0,0,0,1,1,1,0,0,0],                      // we make it winnable, but
+                            [0,0,0,0,0,1,0,0,0,0]];                     // challenging.  all well and good,
+                } else {                                                // unless you are testing several
+                     bricks  = [                                        // logical branching conditions
+                            [1,1,1,1,2,2,1,1,3,1],                      // in the code! To test "what happens
+                            [2,2,1,1,1,2,3,3,1,1],                      // when I win can take hours using
+                            [1,1,1,3,2,1,1,2,2,2],                      // real game maps!  so we inject
+                            [1,2,3,0,1,2,3,0,1,2],                      // a simple little three brick
+                            [0,0,0,0,0,0,0,0,0,0],                      // pyramid into our unit test
+                            [0,1,0,0,3,0,3,0,0,2]                       // setup.  just enough to test MISS,
+                            ];                                          // HIT and WIN.
+                                                                        // what we can do using this mapping
+                                                                        // construct is to introduce 'levels'
+                                                                        // easily, and a user driven 'wall'
+                                                                        // editor.
+                }
+            }
+
+
 
             //---------------------
             function drawPaddle() {
@@ -130,43 +194,36 @@
                                 Math.PI*2,
                                 true);
 
+                // and fill it, we have a plain grey ball
+
+                context.fill();
+
+                // now stick a light source onto it
+
+                context.fillStyle = 'white';
+                context.beginPath();
+
+                // describe an arc with the centre at ball_x, ball_y
+                // with a radius of ball_size/4 for 0..2.PI radians.
+
+                context.arc(    ball_x-2,
+                                ball_y-2,
+                                ball_size/4,
+                                0,
+                                Math.PI*2,
+                                true);
+
                 // and fill it
 
                 context.fill();
             }
 
-            // now for the bricks.  starting out pretty plain
-            // looking, but when the game engine is working
-            // we will tart them up.
 
-            var bricks_per_row = 10;
-            var brick_height = 22;
-            var brick_width = canvas.width/bricks_per_row;
 
-            // now describe the playing board
-            // 1. YELLOW
-            // 2. GREEN
-            // 3. GREY
-            // 0. A GAP IN THE WALL
-
-            if (unit_test) {                            // what are we doing here?
-                var bricks = [                          // to make the game interesting,
-                        [0,0,0,0,1,1,1,0,0,0],          // we make it winnable, but
-                        [0,0,0,0,0,1,0,0,0,0][;         // challenging.  all well and good,
-            } else {                                    // unless you are testing several
-                var bricks  = [                         // logical branching conditions
-                        [1,1,1,1,2,2,1,1,3,1],          // in the code! To test "what happens
-                        [2,2,1,1,1,0,3,3,1,1],          // when I win can take hours using
-                        [1,1,1,3,2,1,0,2,2,2],          // real game maps!  so we inject
-                        [1,2,3,0,1,2,3,0,1,2],          // a simple little three brick
-                        [0,0,0,0,0,0,0,0,0,0],          // pyramid into our unit test
-                        [0,1,0,0,3,0,3,0,0,2]           // setup.  just enough to test MISS,
-                        ];                              // HIT and WIN.
-            }
-            
-            // so now create the initial wall
-
+            //-----------------------
             function createBricks() {
+
+            // so now create the wall
 
                 var bricks_left = 0;
 
@@ -186,9 +243,10 @@
 
 
 
-            // draw one brick only
-
+            //------------------------------
             function drawBrick(x,y,colour) {
+
+            // draw one brick only
 
                 switch(colour) {
                     case 1:
@@ -225,10 +283,14 @@
                 }
             }
 
-            // and now for a scoreboard!
             
 
+
+            //-----------------------
             function displayScore() {
+
+                // and now for a scoreboard!
+
                 context.fillStyle = 'blue';
                 context.font = "14pt MarkerFelt-Thin, Comic Sans MS";
 
@@ -246,10 +308,12 @@
                                     canvas.height - 5);
             }
 
-            // now for the fun part!  We start moving them around!
 
+
+            //-------------------
             function moveBall() {
 
+                // now for the fun part!  We start moving them around!
                 // check to see if we are hitting anything at the top
 
                 if ((ball_y + ball_deltay - ball_size < 0) ||
@@ -262,8 +326,7 @@
 
                 if (ball_y + ball_deltay + ball_size >= canvas.height) {
 
-                    // YOU LOSE!!
-                    missed.play();
+                    missed.play();    // YOU LOSE!!
                     endGame(false);
                 }
 
@@ -275,6 +338,11 @@
                         bounce.play();
                         ball_deltax = -ball_deltax;
                 } 
+
+                // are we hitting the paddle?
+
+                // first, are we at or heading below the paddle's
+                // location in space?
 
                 if (ball_y + ball_deltay + ball_size >= paddle_y) {
                     if (ball_x + ball_deltax >= paddle_x &&
@@ -288,10 +356,13 @@
                 ball_y = ball_y + ball_deltay; 
             }
 
-            // now the REALLY FUN BIT! Brick COLLISIONS!!
 
 
+
+            //-------------------------------
             function collisionxWithBricks() {
+
+                // now the REALLY FUN BIT! Brick COLLISIONS!!
 
                 var hit_x = false;
 
@@ -334,8 +405,12 @@
             }
 
 
+
+            //------------------------------
             function collisionyWithBricks(){
+
                 var hit_y = false;
+
                 for (var i=0; i < bricks.length; i++) {
                     for (var j=0; j < bricks[i].length; j++) {
                         if (bricks[i][j]){
@@ -358,14 +433,18 @@
                 return hit_y;
             }
  
-            // BOOM!
 
+
+            //-----------------------
             function bangBrick(i,j) {
-                bricks[i][j]-- ;
+            
+                // BOOM!
 
-                if (bricks[i][j] > 0) {
-                    score++ ;
-                } else {
+                bricks[i][j]-- ;            // damage or KILL the brick by removing one of
+                                            // its life points
+                if (bricks[i][j] > 0) {     // if the brick is still alive
+                    score++ ;               // score ONE for a bounce
+                } else {                    // or score 10 for a KILL and go BOOM!
                     explode.play();         // the duration of this SFX is a little long for
                     score += 10 ;           // the game.  If the previous play method hasn't
                 }                           // finished, this call is ignored.  I was going
@@ -373,7 +452,13 @@
                                             // semi-random explosions actually sound quite
                                             // good.  less contrived.  so it stays.
 
+
+
+            //---------------------
             function movePaddle() {
+
+                // paddle goes left <-> right
+                // NEVER up and down (yet)
 
                 if (paddle_move ==  'LEFT') {
                     paddle_deltax = -paddle_speedx;
@@ -395,42 +480,74 @@
             }
 
 
-            function animate() {
-                context.clearRect(0,0, canvas.width, canvas.height);
-                createBricks();
-                displayScore();
-                moveBall();
-                movePaddle();
-                drawPaddle();
-                drawBall();
-            }
-    
-            // start the game by setting the interval timer
 
+
+            //------------------
+            function animate() {
+
+                // this is in essence the game controller
+                // it is BOUND to an interval timer and
+                // is called every 20 ticks
+
+                context.clearRect(0,0, canvas.width, canvas.height);
+                                            // first clear the canvas
+
+                createBricks();             // re-draw wall
+                displayScore();             // display game information
+                moveBall();                 // shift the ball in space
+                movePaddle();               // PERHAPS shift the paddle in space
+                drawPaddle();               // draw in new location
+                drawBall();                 // draw in new location
+            }
+   
+
+            //------------------------
+            function resetUniverse() {
+
+                // set game bat and ball values back to initial state
+
+                paddle_x            = 280;                              // arbitary place to stick the paddle
+                paddle_y            = 416;
+
+                paddle_width        = 20;                               // there is a bug in these
+                paddle_height       = 18;                               // numbers somewhere.  sometimes
+                paddle_size         = 4;                                // the ball can rest on the underside
+                // of the paddle for a moment????
+                paddle_deltax       = 0;                                // pixel offsets when moving
+                paddle_deltay       = 0;                                // the paddle
+
+                paddle_move         = "NONE";                           // start still
+                paddle_speedx       = 10;                               // number of pixels to move per
+                                                                        // game cycle
+                // now variables for the ball
+
+                ball_x              = 300;                              // arbitary place to stick the ball
+                ball_y              = 300;
+
+                ball_size           = 10;                               // RADIUS in pixels
+                ball_speed          = 1;                                // speed multiplier
+                ball_deltax         = -2;
+                ball_deltay         = -4;
+
+                paddle_deltax       = 0;
+
+            }
+
+
+            //--------------------
             function startGame() {
 
                 context.clearRect(0, 0, canvas.width, canvas.height);
 
-                paddle_x = 280;
-                paddle_y = 410;
+                // set start game state, HOWEVER, not ALL variables
+                // are reset as we can get in here from a LOST LIFE
+                // RESTART. so we want to conserve bricks and scores.
+                // the number of restart modes increases the complexity
+                // of where and when these variable are initialised
 
-                paddle_width = 20;
-                paddle_height = 15;
-                paddle_size = 4;
+                resetUniverse();
 
-                paddle_deltax = 0;
-                paddle_deltay = 0;
-
-                paddle_move = "NONE";
-                paddle_speedx = 10;
-
-                ball_deltax = -2;
-                ball_deltay = -4;
-
-                ball_x = 300;
-                ball_y = 300;
-
-                paddle_deltax = 0;
+                // start the game by setting the interval timer
 
                 gameLoop = setInterval(animate,20);
 
@@ -455,51 +572,108 @@
                 });
             }
 
-            // and shut the game down with a message
 
+            //--------------
+            function bye() {
+
+                // we got here because the player won, but is bored!
+                // say goodbye!
+                // and give them a final clap
+
+                context.clearRect(0,0, canvas.width, canvas.height);
+                context.lineWidth       = 3;
+                context.strokeText("Come back real soon!!!!", 40, 250);
+                firework.play();
+                clearInterval(gameLoop);
+            }
+
+
+            //----------------
+            function croak() {
+
+                // we got here because:
+                //
+                // 1.  Player ran out of lives, or,
+                // 2.  Lost a life, got bored and selected QUIT
+                //
+                // GURGLE GURGLE GURGLE
+
+                context.lineWidth       = 3;
+                context.strokeText("Better Luck next time!!!", 40, 250);
+                over.play();
+                clearInterval(gameLoop);
+            }
+
+
+            //---------------------
             function endGame(won) {
+
+                // and shut the game down in a number of modes with a message
+                // and make the message pretty
 
                 var gradient=context.createLinearGradient(5, 50, 500, 20);
 
-                gradient.addColorStop(0.1, '#F82E23');
+                gradient.addColorStop(0.1,  '#F82E23');
                 gradient.addColorStop(0.25, '#E2E651');
-                gradient.addColorStop(0.5, '#55D268');
+                gradient.addColorStop(0.5,  '#55D268');
                 gradient.addColorStop(0.75, '#5A77DA');
-                gradient.addColorStop(1, '#C84489');
-                context.font = "40pt MarkerFelt-Thin, Comic Sans MS";
-                context.shadowOffsetX=5;
-                context.shadowOffsetY=5;
-                context.shadowBlur=10;
-                context.fillStyle='#000000';
-                context.strokeStyle=gradient;
-                context.lineWidth=3;
+                gradient.addColorStop(1,    '#C84489');
+
+                context.font = "40pt MarkerFelt-Thin, Comic Sans MS";       // MarkerFelt is for the iPod
+
+                context.shadowOffsetX   = 5;
+                context.shadowOffsetY   = 5;
+                context.shadowBlur      = 10;
+                context.fillStyle       = '#000000';
+                context.strokeStyle     = gradient;
+                context.lineWidth       = 3;
+
                 if (won) {
+
+                    // OK, we got here if the player cleared the
+                    // universe of bricks.  play them a nice applause
+                    // and send them a pretty message.
+                    //
+                    // we can make some choices from this point:
+                    //
+                    // 1. Do you want to save your score=>name?
+                    // 2. Do you want to play again?
+
+
                     context.strokeText("YOU WON!! HERO!!", 80, 250);
                     firework.play();
-                    var winner = prompt("Winners!\n\n1. Donald Duck\n2. Bic Lighter\n3. Bugs Bunny\n4. Clint Eastwood\n5. Bella Addinall\n\nShall we store your score?  - " + score, "Game Superstar");
+
+                    // want to store your score?
+
+                    var winner = prompt("Winners!\n\n1. Donald Duck\n2. Bic Lighter\n3. " +
+                                        "Bugs Bunny\n4. Clint Eastwood\n5. Bella Addinall\n\n" +
+                                        "Shall we store your score?  - " + score, "Game Superstar");
                     if (winner) {
                         // store locally
                     }
-                    clearInterval(gameLoop);
+
+                    // want to play again?
+
                     var again = confirm("Play again?");
                     if (again) {
-                        bricks  = [
-                                    [1,1,1,1,2,2,1,1,3,1],
-                                    [2,2,1,1,1,0,3,3,1,1],
-                                    [1,1,1,3,2,1,0,2,2,2],
-                                    [1,2,3,0,1,2,3,0,1,2],
-                                    [0,0,0,0,0,0,0,0,0,0],
-                                    [0,1,0,0,3,0,3,0,0,2]
-                                ];
-            
+                        clearInterval(gameLoop);
+                        context.lineWidth=1;
+                        lives = 3;
+                        won = false;
+                        setBrickWorld(); 
                         startGame();
-                    }
+                    }else {
+                        bye();
+                   }
                 } else {
+
+                    // OK, we got here because the player MISSED the ball and we need
+                    // to subtract a life.  if lives .eq. 0, the player is dead!
+                    // tell them so and croak
+
                     lives--;
                     if (lives == 0) {
-                        context.strokeText("Better Luck next time!!!", 40, 250);
-                        over.play();
-                        clearInterval(gameLoop);
+                       croak(); 
                     } else {
                         clearInterval(gameLoop);
                         context.lineWidth=1;
@@ -507,15 +681,15 @@
                         if (cont) {
                             startGame();
                         } else {
-                        context.strokeText("Better Luck next time!!!", 40, 250);
-                        over.play();
-                        clearInterval(gameLoop);
+                            croak();
                         }
                     }
                 }
             }
 
-            startGame();
+
+            setBrickWorld();                // first time around, draw the bricks
+            startGame();                    // and start the game
 
         });
 
@@ -598,11 +772,11 @@ h1{
 
 }
 
-
-
 </style>
 
 </head>
+
+
 
 <body>
     
