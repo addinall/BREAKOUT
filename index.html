@@ -182,7 +182,7 @@ $(document).ready(function(){
 
                 if (unit_test) {                                        // what are we doing here?
                      bricks = [                                         // to make the game interesting,
-                            [0,0,0,0,1,1,1,0,0,0],                      // we make it winnable, but
+                            [0,0,0,0,0,0,0,0,0,0],                      // we make it winnable, but
                             [0,0,0,0,0,1,0,0,0,0]];                     // challenging.  all well and good,
                 } else {                                                // unless you are testing several
                      bricks  = [                                        // logical branching conditions
@@ -355,7 +355,6 @@ $(document).ready(function(){
                 // and write the score
                 // number of lives left, and
                 // time elapsed in seconds
-
 
                 context.fillText(   'Score: ' + score +  
                                     '      Lives: ' + lives  + 
@@ -763,7 +762,6 @@ $(document).ready(function(){
 
                     clearInterval(tickTimer);
 
-
                     // OK, we got here if the player cleared the
                     // universe of bricks.  play them a nice applause
                     // and send them a pretty message.
@@ -785,7 +783,7 @@ $(document).ready(function(){
 
                     score = score + (bonus_time - ticks);
 
-                    if (local.storage) {
+                    if(typeof window.localStorage != 'undefined') {
                         // no use asking the question if the browser can't
                         // do the deed eh?
 
