@@ -17,10 +17,17 @@
             https://www.udacity.com/course/viewer#!/c-cs255/l-49464373/e-73862325/m-86304040
         Dont bother, it sucks.  THEY make mistakes on EVERY example in the tutition.
         This is a result of Googling many sites including
-        Aditya Ravi Shankar.
+        Aditya Ravi Shankar. I got quite a few of the basic ideas from his games web
+        page.
         It does a whole bunch of things differently, notably restarts from
         missed the ball.  I introduced the concept of n LIVES.
         It will also restart after a win if the player wishes.
+        Has toggling features, HTML5 local.storage and a deal of CSS3 control.
+        It mow validates HTML5 and CSS3.
+        I re-wrote most of in-line concept code into a modular design.
+        It now lives in a namespace and the Javascript initialised variables
+        are gone.
+        Start and stopping controls are now available.
 
         TODO:
         Play around with the graphics capabilities of the canvas element
@@ -37,7 +44,11 @@
 
     <script>
 
-        $(function() {
+
+
+$(document).ready(function(){
+
+    //  $(function() {
 
             var canvas = document.getElementById('myCanvas');
 
@@ -71,7 +82,7 @@
             firework.volume = 1;                                        // couple of quiet SFX
             missed.volume   = 1;                                        // the range of volume is 0 .. 1
                                                                         // that was hard to find
-            
+            over.volume     = 1; 
             bounce.volume   = 0.2;                                      // the sample volume range of 
             explode.volume  = 0.4;                                      // the SFX i got off the net
                                                                         // varied a GREAT deal so some
@@ -127,6 +138,30 @@
             var brick_height        = 22;                               // based on difficulty level or
             var brick_width         = canvas.width/bricks_per_row;      // device type
 
+            var noise_on            = true;                             // sound toggle
+        
+
+            //----------------------
+            function toggleNoise() {
+
+                noise_on = !noise_on;               // just flip the current BOOLEAN state
+
+                if (noise_on) {
+                    firework.volume = 1;            // reset volumes 
+                    missed.volume   = 1;
+                    over.volume     = 1;
+                    bounce.volume   = 0.2;
+                    explode.volume  = 0.4;
+
+                } else {
+                    firework.volume = 0;            // make it quiet!!!
+                    missed.volume   = 0;
+                    over.volume     = 0;
+                    bounce.volume   = 0;
+                    explode.volume  = 0;
+                }
+            }
+
 
             //------------------------
             function setBrickWorld() {
@@ -144,7 +179,7 @@
                 } else {                                                // unless you are testing several
                      bricks  = [                                        // logical branching conditions
                             [1,1,0,1,2,2,1,1,3,1],                      // in the code! To test "what happens
-                            [2,2,1,0,1,2,3,3,1,1],                      // when I win can take hours using
+                            [2,2,1,0,1,2,3,3,0,1],                      // when I win can take hours using
                             [1,1,0,3,2,1,1,2,2,2],                      // real game maps!  so we inject
                             [1,2,3,0,1,2,3,0,1,2],                      // a simple little three brick
                             [0,0,0,0,0,0,0,0,0,0],                      // pyramid into our unit test
@@ -226,7 +261,13 @@
 
             // so now create the wall
 
-                var bricks_left = 0;
+                var bricks_left = 0;        // we don't much care about the N value
+                                            // of this variable, just that it is
+                                            // either zero or not zero.  If this
+                                            // accumulator is zero after ripping
+                                            // through the brick array, that means
+                                            // the player has BUSTED all of the
+                                            // bricks and has won!
 
                 for (var i=0; i < bricks.length; i++) {
                     for (var j=0; j < bricks[i].length; j++) {
@@ -267,6 +308,7 @@
                                             brick_height);
                         break;
                 }
+
                 if (colour != 0) {
                     // fill the brick with colour and give each
                     // brick a border
@@ -303,6 +345,9 @@
                                     30);
 
                 // and write the score
+                // number of lives left, and
+                // time elapsed in seconds
+
 
                 context.fillText(   'Score: ' + score +  
                                     '      Lives: ' + lives  + 
@@ -566,10 +611,10 @@
 
                 ball_size           = 10;                               // RADIUS in pixels
                 ball_speed          = 1;                                // speed multiplier
-                ball_deltax         = -2;
-                ball_deltay         = -4;
+                ball_deltax         = -2;                               // initial
+                ball_deltay         = -4;                               // directions of the ball
 
-                paddle_deltax       = 0;
+                paddle_deltax       = 0;                                // paddle is not moving yet
 
             }
 
@@ -578,8 +623,23 @@
             //----------------------
             function  countTicks() {
             
-                ticks++;        // number of seconds running
+                ticks++;                                                // number of seconds running
 
+            }
+
+
+
+            //----------------------
+            function resetRuntime(){
+
+                clearInterval(gameLoop);            // turn off the game engine, restarted in startGame
+                clearInterval(tickTimer);           // unset the stopwatch
+                ticks = 0;                          // elapsed time to zero
+                context.lineWidth=1;                // make sure we have skinny lines
+                lives = 3;                          // reset full live balance
+                won = false;                        // stops endGame(won) getting confused!
+                score = 0;                          // we no longer just 'drop out' of the page, reset this
+                setBrickWorld();                    // reset the brick wall
             }
 
 
@@ -609,13 +669,15 @@
 
                 $(document).keydown(function(evt) {
                     if (evt.keyCode == 39) {
-                        paddle_move = "RIGHT";
+                        paddle_move = "RIGHT";                  // push  the bat right
                     } else if (evt.keyCode == 37) {
-                        paddle_move = "LEFT";
+                        paddle_move = "LEFT";                   // push the bat left
+                    } else if (evt.keyCode == 82) {
+                        toggleNoise();                          // toggle game sounds
                     }
                 });
 
-                $(document).keyup(function(evt) {
+                $(document).keyup(function(evt) {               // stop the bat moving
                     if (evt.keyCode == 39) {
                         paddle_move = "NONE";
                     } else if (evt.keyCode == 37) {
@@ -633,10 +695,11 @@
                 // and give them a final clap
 
                 context.clearRect(0,0, canvas.width, canvas.height - 50);
+                context.font = "40pt MarkerFelt-Thin, Comic Sans MS";       // MarkerFelt is for the iPod
                 context.lineWidth       = 3;
                 context.strokeText("Come back real soon!!!!", 60, 250);
                 firework.play();
-                clearInterval(gameLoop);
+                resetRuntime();
             }
 
 
@@ -651,9 +714,10 @@
                 // GURGLE GURGLE GURGLE
 
                 context.lineWidth       = 3;
+                context.font = "40pt MarkerFelt-Thin, Comic Sans MS";       // MarkerFelt is for the iPod
                 context.strokeText("Better Luck next time!!!", 40, 250);
                 over.play();
-                clearInterval(gameLoop);
+                resetRuntime(); 
             }
 
 
@@ -710,23 +774,24 @@
 
                     score = score + (bonus_time - ticks);
 
-                    var winner = prompt("Winners on this machine!\n\n1. Donald Duck\n2. Bic Lighter\n3. " +
+                    if (local.storage) {
+                        // no use asking the question if the browser can't
+                        // do the deed eh?
+
+                        var winner = prompt("Winners on this machine!\n\n1. Donald Duck\n2. Bic Lighter\n3. " +
                                         "Bugs Bunny\n4. Clint Eastwood\n5. Bella Addinall\n\n" +
                                         "Shall we store your score?  :  " + score, "Game Superstar");
-                    if (winner) {
-                        // store locally
+                        if (winner) {
+                            // store locally
+                        }
                     }
+
 
                     // want to play again?
 
                     var again = confirm("Play again?");
                     if (again) {
-                        clearInterval(gameLoop);            // turn off the game engine, restarted in startGame
-                        ticks = 0;                          // elapsed time to zero
-                        context.lineWidth=1;                // make sure we have skinny lines
-                        lives = 3;                          // reset full live balance
-                        won = false;                        // stops endGame(won) getting confused!
-                        setBrickWorld();                    // reset the brick wall
+                        resetRuntime();
                         startGame();                        // HAVE FUN BUSTING BRICKS!!
                     }else {
                         bye();
@@ -742,7 +807,7 @@
                        croak(); 
                     } else {
                         clearInterval(gameLoop);
-                        context.lineWidth=1;
+                        context.lineWidth = 1;
                         var cont = confirm('You have lives left!  Continue?');
                         if (cont) {
                             score = score - 20;             // penalty for losing a ball!
@@ -755,18 +820,36 @@
             }
 
 
+            context.lineWidth =  1;         // make sure we have skinny lines for drawing
+            resetUniverse();                // we need some values in this routine for
+                                            // the following static drawings.
+                                            // it is nice to have a still shot of the
+                                            // game on the canvas, otherwise it is
+                                            // cognetively confusing for the would
+                                            // be player, staring at a blank white screen.
+                                            // the static picure gives the required visual
+                                            // cues to the brain so that when the game DOES
+                                            // start, the player is accustomed to the shape of
+                                            // the universe, and has plenty of clues as
+                                            // to what is about to happen next.
+
             setBrickWorld();                // first time around, draw the bricks
-            startGame();                    // and start the game
+            createBricks();                 // just something to look at until the GO
+                                            // button is hit
+            drawPaddle();                   // draw in START location STATIC
+            drawBall();                     // draw in or AROUND START location
+            displayScore();                 // 0 0 0
+ 
+ 
+            $("#breaker_button").click(function() {
+                startGame();
+            });
 
         });
-
     </script>
 
-<link href='http://fonts.googleapis.com/css?family=Reenie+Beanie|Rock+Salt' rel='stylesheet' type='text/css'>
 
-
-
-    <style type="text/css">
+<style type="text/css">
 
 
 /* This is the CSS3 description of the post-it stickies
@@ -785,26 +868,66 @@
  *
  */
 
-body{
-  font-family:arial,sans-serif;
-  font-size:100%;
+body,
+html {
+  margin: 0;
+  padding: 0;
   background:#666;
   background: -webkit-gradient(linear, left top, left bottom, from(#000), to(#ccc));
   background: -moz-linear-gradient(top,  #000,  #ccc);
-  color:#fff;
+  color:white;
 }
+
+
+#wrapper {
+    width: 1100px;
+    margin:0 auto;
+}
+
+
+#header {
+    overflow: hidden;
+    padding: 0px;
+
+}
+
+
 h1{
-  font-family:"Rock Salt",arial,sans-serif;
-  font-size:220%;
+  font-family: MarkerFelt-Thin, "Comic Sans MS";
+  font-size:50px;
   font-weight:normal;
-  margin:0 auto;
   text-align:center;
+  margin: 0px;
 }
+
+#content {
+
+    float: left;
+    width: 750px;
+    padding: 10px;
+}
+
+
+#sidebar {
+
+    float: right;
+    width: 280px;
+    padding:5px;
+    font-family: MarkerFelt-Thin, "Comic Sans MS";
+    color:blue;
+    background-color:white;
+    border:solid black; 
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+    -moz-box-shadow: 10px 10px 5px black;
+    -webkit-box-shadow: 10px 10px 5px black;
+    box-shadow: 10px 10px 5px black;
+}
+
 
  #myCanvas { 
     background-color:white;
     border:solid black; 
-    margin-left:25%;
     -moz-border-radius: 5px;
     border-radius: 5px;
     -moz-box-shadow: 10px 10px 5px black;
@@ -812,32 +935,79 @@ h1{
     box-shadow: 10px 10px 5px black;
     }
 
-#footer p {
+#footer {
 
+    clear:both;
+    margin:20px;
+    padding:30px;
     text-align:center;
     color: black;
     font-family: MarkerFelt-Thin, "Comic Sans MS";
     font-size: 75%;
 }
 
-
-@media screen and (max-width: 650px) {
-
-#myCanvas {
-
-    margin: 2,2,2,2;
+.red {
+    color: red;
 }
 
-#h1 {
-    text-align: left;
-    font-size: 60%;
+.blue {
+    color: blue;
 }
 
-#footer {
-    text-align: left;
+.yellow {
+    color: yellow;
 }
 
+.green {
+    color: green;
 }
+
+.black {
+    color: black;
+}
+
+
+.orange {
+    color: orange;
+}
+
+
+.button {
+    border-top: 1px solid #261701;
+    background: #3b3302;
+    background: -webkit-gradient(linear, left top, left bottom, from(#fac60a), to(#3b3302));
+    background: -webkit-linear-gradient(top, #fac60a, #3b3302);
+    background: -moz-linear-gradient(top, #fac60a, #3b3302);
+    background: -ms-linear-gradient(top, #fac60a, #3b3302);
+    background: -o-linear-gradient(top, #fac60a, #3b3302);
+    padding: 5px 10px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    border-radius: 10px;
+    -webkit-box-shadow: rgba(0,0,0,1) 0 1px 0;
+    -moz-box-shadow: rgba(0,0,0,1) 0 1px 0;
+    box-shadow: rgba(0,0,0,1) 0 1px 0;
+    text-shadow: rgba(0,0,0,.4) 0 1px 0;
+    color: white;
+    font-size: 17px;
+    font-family: Georgia, serif;
+    text-decoration: none;
+    vertical-align: middle;
+}
+
+
+.button:hover {
+    border-top-color: #5e2706;
+    background: #5e2706;
+    color: #ccc;
+}
+
+.button:active {
+    border-top-color: #54031a;
+    background: #54031a;
+}
+
+
 
 </style>
 
@@ -872,16 +1042,52 @@ h1{
    <source src="sfx/firework.mp3" type='audio/mpeg; codecs="mp3"'>
 </audio>
 
+    <div id="wrapper">
+        <div id="header">
+            <h1>BREAKOUT!</h1>
+        </div>
 
-    <h1>BREAKOUT!</h1>
-    <canvas id="myCanvas" height="460" width="700">
-    Your browser does not support HTML5 canvas objects.  You need a decent browser.
-    </canvas>
-<footer id="footer">
-<p>
-BREAKOUT!  by Mark Addinall | 2013 | Brisbane Australia
-</p>
-</footer>
+
+        <div id="content">
+
+            <canvas id="myCanvas" height="460" width="700">
+            Your browser does not support HTML5 canvas objects.  You need a decent browser.
+            </canvas>
+
+        </div>
+
+        <div id="sidebar">
+            <p class="green"> What is BREAKOUT!?</p>
+            <p class="blue"> It is part of a number of experiments that are exploring:</p>
+            <ul class="black">
+                <li>Cross platform development</li>
+                <li class="orange">HTML5 features</li>
+                <li class="green">CSS3 features</li>
+                <li class="red">Modern Javascript</li>
+                <li class="blue">Graphics without files</li>
+                <li class="green">Animation without FLASH!</li>
+                <li class="orange">Standards compliance</li>
+           </ul>
+           <p class="green">Instructions</p>
+           <ul>
+                <li>Hit the BUTTON to start!</li>
+                <li>Left and Right Arrow keys to move</li>
+                <li>'S' or 's' toggles the noise</li>
+                <li>Let a Ball go to quit!</li>
+           </ul>
+           <p class="orange">HAVE FUN!
+           <button class="button" id="breaker_button" >START!</button> 
+           </p>
+
+        </div>
+
+
+        <div id="footer">
+            <p>
+            BREAKOUT!  by <a href="mailto:addinall@addinall.net">Mark Addinall</a> | 2013 | Brisbane Australia
+            </p>
+        </div>
+    </div>
 </body>
 </html>
 
