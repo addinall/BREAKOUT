@@ -73,6 +73,8 @@ $(document).ready(function(){
             // to be consistant over all of the major
             // browsers.
 
+            var noise_on    = true;                                     // sound toggle
+            
             var bounce      = document.getElementById('bounce');        // ball hits ANYTHING
             var explode     = document.getElementById('explode');       // brick is destroyed
             var over        = document.getElementById('over');          // game over gurgle
@@ -96,7 +98,10 @@ $(document).ready(function(){
             var bonus_time          = 900;                              // 15 minutes
             var lives               = 3                                 // 3 misses, then death
             var won                 = false;                            // assume failure (NBN)
+
             var score               = 0;                                // 1 for hit, 10 for boom, modified
+            var scores              = [];                               // top 10 list for local storage
+            var high_scores         =   "";                             // JSON stringified scores
 
 
             var tickTimer;                                              // these two are up here because of
@@ -146,8 +151,69 @@ $(document).ready(function(){
             var brick_height        = 22;                               // based on difficulty level or
             var brick_width         = canvas.width/bricks_per_row;      // device type
 
-            var noise_on            = true;                             // sound toggle
-        
+       
+
+
+            //---------------------
+            function get_scores() {
+
+
+                if (window.localStorage) {
+                    high_scores = localStorage.getItem("break-highscores");
+                }
+
+                if (high_scores != null ) {                 // this test is REALLY important
+                    scores = JSON.parse(high_scores);       // doing ANYTHING to a null just spins
+                }                                           // the machine forever!
+                
+                scores = scores.filter(function(n){return n})
+                                                            // just in cas we have an array full
+                                                            // of nulls.  this is something else
+                                                            // that REALLY upsets javascript!!!
+                if (scores.length == 0) {
+                    scores.push(["Angry Anderson", 666]);   // don't return a null array
+                }                                           // javascript throws a fit in the new local
+            }                                               // storage routines on bad data
+
+            //---------------------
+            function put_scores() {
+
+                localStorage.setItem("break-highscores", high_scores);
+
+            }
+
+            //------------------------
+            function delete_scores() {
+
+                localStorage.removeItem("break-highscores");
+            }
+
+
+            //-----------------------
+            function sort_scores() {
+
+                scores.sort( function( a, b ) {
+
+                    // Sort by the 2nd value in each array, which is, the score!
+
+                    if ( a[1] == b[1] ) return 0;
+                    return b[1] - a[1];
+                });
+
+                if (scores.length > 9) {
+                    scores.length = 9;      // we just chop this to make the Leader Board look neat.
+                }
+            }
+
+
+            //---------------------------
+            function stringify_scores() {
+
+               high_scores = JSON.stringify(scores);
+
+            }
+
+
 
             //----------------------
             function toggleNoise() {
@@ -779,29 +845,47 @@ $(document).ready(function(){
                                                                             // put it back!
                     firework.play();                                        // YAH!  WHIZZ!  BOOM! 
 
-                    // want to store your score?
+                                                                            // want to store your score?
 
-                    score = score + (bonus_time - ticks);
+                    score = score + (bonus_time - ticks);                   // just a silly algorithm
 
                     if(typeof window.localStorage != 'undefined') {
-                        // no use asking the question if the browser can't
-                        // do the deed eh?
+                                                                            // no use asking the question if the browser can't
+                                                                            // do the deed eh?
+                        get_scores();                                       // get stored high scores from localStorage
+                                                                            // this allows persistant data like on
+                                                                            // an iPod when not connected to the net
 
-                        var winner = prompt("Winners on this machine!\n\n1. Donald Duck\n2. Bic Lighter\n3. " +
-                                        "Bugs Bunny\n4. Clint Eastwood\n5. Bella Addinall\n\n" +
-                                        "Shall we store your score?  :  " + score, "Game Superstar");
-                        if (winner) {
-                            // store locally
+                        var display = "Winners on this machine! \n\n";      // this ugly crap builds a leader board
+                        for (var i = 0; i < scores.length; i++) {           // and a prompt to save
+                            display = display + (i+1) + '.  ' + 
+                                scores[i][0] + '\t'+ 
+                                    scores[i][1] + '\n';
+                        }
+                        display = display + 
+                                "\nShall we store your score?  :  " + score;
+
+
+                        var winner = prompt(display,"Elmer Fudd");          // well, dywanna punk?
+
+                        
+                        if (winner != null) {                               // if NO, the string comes back empty
+                                                                            // store locally
+                            scores.push([winner, score]);                   // push this score onto the stack
+                            sort_scores();                                  // sort in score order
+                            stringify_scores();                             // turn the array into JSON
+                            delete_scores();                                // delete the old scores, they append otherwise
+                            put_scores();                                   // and store the new stack [0..8] only
                         }
                     }
 
 
-                    // want to play again?
+                                                                            // want to play again?
 
                     var again = confirm("Play again?");
                     if (again) {
-                        resetRuntime();
-                        startGame(false);                        // HAVE FUN BUSTING BRICKS!!
+                        resetRuntime();                                     // reset state variables, and
+                        startGame(false);                                   // HAVE FUN BUSTING BRICKS!!
                     }else {
                         bye();
                    }
@@ -883,6 +967,9 @@ html {
   background:#666;
   background: -webkit-gradient(linear, left top, left bottom, from(#000), to(#ccc));
   background: -moz-linear-gradient(top,  #000,  #ccc);
+  background: -webkit-linear-gradient(top, #000, #ccc);
+  background: -ms-linear-gradient(top, #000, #ccc);
+  background: -o-linear-gradient(top, #000, #ccc);
   color:white;
 }
 
@@ -947,7 +1034,7 @@ h1{
 
     clear:both;
     margin:20px;
-    padding:30px;
+    padding:10px;
     text-align:center;
     color: black;
     font-family: MarkerFelt-Thin, "Comic Sans MS";
