@@ -16,22 +16,25 @@
         I was doing this on-line course
             https://www.udacity.com/course/viewer#!/c-cs255/l-49464373/e-73862325/m-86304040
         Dont bother, it sucks.  THEY make mistakes on EVERY example in the tutition.
-        This is a result of Googling many sites including
-        Aditya Ravi Shankar. I got quite a few of the basic ideas from his games web
-        page.
-        It does a whole bunch of things differently, notably restarts from
+        
+        It does a whole bunch of things differently  than the first
+        cuts from bits and bobs from the net.  notably restarts from
         missed the ball.  I introduced the concept of n LIVES.
         It will also restart after a win if the player wishes.
         Has toggling features, HTML5 local.storage and a deal of CSS3 control.
         It mow validates HTML5 and CSS3.
         I re-wrote most of in-line concept code into a modular design.
-        It now lives in a namespace and the Javascript initialised variables
-        are gone.
         Start and stopping controls are now available.
+        Finished the board being randomly generated with a half decent
+        weighting algorithm.  The localStorage of high scores is finished,
+        although this is going to be modified when I do more work on
+        'levels'.
 
         TODO:
         Play around with the graphics capabilities of the canvas element
         to try and get the graphics looking a little slicker.   
+        Take it all out of one file and stick it in a standard
+        html->name-> css sfx js directory structure.
 
 -->
     <title>BREAKOUT! - HTML5 experiments</title>
@@ -47,8 +50,6 @@
 
 
 $(document).ready(function(){
-
-    //  $(function() {
 
             var canvas = document.getElementById('myCanvas');
 
@@ -98,6 +99,7 @@ $(document).ready(function(){
             var bonus_time          = 900;                              // 15 minutes
             var lives               = 3                                 // 3 misses, then death
             var won                 = false;                            // assume failure (NBN)
+            var level               = 1;                                // current game elevel (can save)
 
             var score               = 0;                                // 1 for hit, 10 for boom, modified
             var scores              = [];                               // top 10 list for local storage
@@ -148,6 +150,7 @@ $(document).ready(function(){
                                                                         // initial play and play again
 
             var bricks_per_row      = 10;                               // magic numbers.  might change
+            var rows_of_bricks      = 6;                                // magic number WILL change
             var brick_height        = 22;                               // based on difficulty level or
             var brick_width         = canvas.width/bricks_per_row;      // device type
 
@@ -167,11 +170,11 @@ $(document).ready(function(){
                 }                                           // the machine forever!
                 
                 scores = scores.filter(function(n){return n})
-                                                            // just in cas we have an array full
+                                                            // just in case we have an array full
                                                             // of nulls.  this is something else
                                                             // that REALLY upsets javascript!!!
                 if (scores.length == 0) {
-                    scores.push(["Angry Anderson", 666]);   // don't return a null array
+                    scores.push(["Angry Anderson", 666, 1]);// don't return a null array
                 }                                           // javascript throws a fit in the new local
             }                                               // storage routines on bad data
 
@@ -201,7 +204,7 @@ $(document).ready(function(){
                 });
 
                 if (scores.length > 9) {
-                    scores.length = 9;      // we just chop this to make the Leader Board look neat.
+                    scores.length = 9;                  // we just chop this to make the Leader Board look neat.
                 }
             }
 
@@ -209,8 +212,8 @@ $(document).ready(function(){
             //---------------------------
             function stringify_scores() {
 
-               high_scores = JSON.stringify(scores);
-
+               high_scores = JSON.stringify(scores);    // take a multi-dimensional array and turn it into
+                                                        // a string representation of a JSON object.
             }
 
 
@@ -218,7 +221,7 @@ $(document).ready(function(){
             //----------------------
             function toggleNoise() {
 
-                noise_on = !noise_on;               // just flip the current BOOLEAN state
+                noise_on = !noise_on;                   // just flip the current BOOLEAN state
 
                 if (noise_on) {
                     firework.volume = 1;            // reset volumes 
@@ -251,20 +254,37 @@ $(document).ready(function(){
                             [0,0,0,0,0,0,0,0,0,0],                      // we make it winnable, but
                             [0,0,0,0,0,1,0,0,0,0]];                     // challenging.  all well and good,
                 } else {                                                // unless you are testing several
-                     bricks  = [                                        // logical branching conditions
-                            [1,1,0,1,2,2,1,1,3,1],                      // in the code! To test "what happens
-                            [2,2,1,0,1,2,3,3,0,1],                      // when I win can take hours using
-                            [1,1,0,3,2,1,1,2,2,2],                      // real game maps!  so we inject
-                            [1,2,3,0,1,2,3,0,1,2],                      // a simple little three brick
-                            [0,0,0,0,0,0,0,0,0,0],                      // pyramid into our unit test
-                            [0,1,0,0,3,0,3,0,0,2]                       // setup.  just enough to test MISS,
-                            ];                                          // HIT and WIN.
+                    // bricks  = [                                      // logical branching conditions
+                    //        [1,1,0,1,2,2,1,1,3,1],                    // in the code! To test "what happens
+                    //        [2,2,1,0,1,2,3,3,0,1],                    // when I win can take hours using
+                    //        [1,1,0,3,2,1,1,2,2,2],                    // real game maps!  so we inject
+                    //        [1,2,3,0,1,2,3,0,1,2],                    // a simple little one brick
+                    //        [0,0,0,0,0,0,0,0,0,0],                    // universe into our unit test
+                    //        [0,1,0,0,3,0,3,0,0,2]                     // setup.  just enough to test MISS,
+                    //        ];                                        // HIT and WIN.
                                                                         // what we can do using this mapping
                                                                         // construct is to introduce 'levels'
                                                                         // easily, and a user driven 'wall'
                                                                         // editor.
-                }
-            }
+                    
+                    
+                    var chance = 0;                                                     // now we have the basics working, the
+                    var weight = 0;                                                     // very
+                                                                                        // first step along the way to introducing
+                    for (var i = 0; i < rows_of_bricks; i++) {                          // levels is to build a random dungeon
+                        bricks[i] = [];                                                 // generator.  In this first instance we
+                        weight = (i*5);                                                 // choose some arbitary magic possibilities
+                        for (var j = 0; j < bricks_per_row; j++) {                      // with decreasing probability as the wall
+                            chance = (Math.floor(Math.random() * 100) +1);              // approaches the human.  There is no particular
+                            if ((chance - weight) >= 20) {                              // reason for this approach at all, it could
+                                bricks[i].push((Math.floor(Math.random() * 4)));        // just as well be evenly distributed.
+                            } else {                                                    // so at the moment this algorithm is designed
+                                bricks[i].push(0);                                      // to give a base chance of 80% that a cell will
+                            }                                                           // be occupied. this probability decreases
+                        }                                                               // as a function of the distance along the
+                    }                                                                   // primary axis of the array.  ie. the world
+                }                                                                       // population becomes sparser further out in
+            }                                                                           // the universe.  closer to the human.
 
 
 
@@ -281,7 +301,12 @@ $(document).ready(function(){
                 context.fillRect(   paddle_x,
                                     paddle_y,
                                     (paddle_width * paddle_size),
-                                    paddle_height);
+                                    paddle_height - 8);
+                context.fillStyle = 'lightslategray';
+                context.fillRect(   paddle_x,
+                                    paddle_y + 10,
+                                    (paddle_width * paddle_size),
+                                    paddle_height - 8);
             }
 
 
@@ -313,11 +338,10 @@ $(document).ready(function(){
                 context.fillStyle = 'white';
                 context.beginPath();
 
-                // describe an arc with the centre at ball_x, ball_y
-                // with a radius of ball_size/4 for 0..2.PI radians.
+                // and make it wobble a bit
 
-                context.arc(    ball_x-2,
-                                ball_y-2,
+                context.arc(    ball_x-((2*(ticks % 2))+1),
+                                ball_y-((2*(ticks % 2))+1),
                                 ball_size/4,
                                 0,
                                 Math.PI*2,
@@ -424,7 +448,8 @@ $(document).ready(function(){
 
                 context.fillText(   'Score: ' + score +  
                                     '      Lives: ' + lives  + 
-                                    '      Time:  ' + ticks,
+                                    '      Time:  ' + ticks  +
+                                    '             Level:   ' + level,
                                     10,
                                     canvas.height - 5);
             }
@@ -750,6 +775,10 @@ $(document).ready(function(){
                         paddle_move = "LEFT";                   // push the bat left
                     } else if (evt.keyCode == 82) {
                         toggleNoise();                          // toggle game sounds
+                    } else if (evt.keyCode == 46) {             // DEL
+                        delete_scores();                        // sneaky hidden method to kill score file
+                    } else if (evt.keyCode == 18) {             // ALT
+                        unit_test = !unit_test;                 // sneaky hidden method to toggle unit testing
                     }
                 });
 
@@ -847,7 +876,11 @@ $(document).ready(function(){
 
                                                                             // want to store your score?
 
-                    score = score + (bonus_time - ticks);                   // just a silly algorithm
+                    score = (score * level) + (bonus_time - ticks);         // just a silly algorithm, but it
+                                                                            // gets you on the limited leader board.
+                                                                            // I limited the leader board to nine
+                                                                            // entries purely for cosmentic
+                                                                            // purposes.
 
                     if(typeof window.localStorage != 'undefined') {
                                                                             // no use asking the question if the browser can't
@@ -860,7 +893,8 @@ $(document).ready(function(){
                         for (var i = 0; i < scores.length; i++) {           // and a prompt to save
                             display = display + (i+1) + '.  ' + 
                                 scores[i][0] + '\t'+ 
-                                    scores[i][1] + '\n';
+                                    scores[i][1] + '    Level   ' +
+                                        scores[i][2] + '\n';
                         }
                         display = display + 
                                 "\nShall we store your score?  :  " + score;
@@ -871,7 +905,7 @@ $(document).ready(function(){
                         
                         if (winner != null) {                               // if NO, the string comes back empty
                                                                             // store locally
-                            scores.push([winner, score]);                   // push this score onto the stack
+                            scores.push([winner, score, level]);            // push this score onto the stack
                             sort_scores();                                  // sort in score order
                             stringify_scores();                             // turn the array into JSON
                             delete_scores();                                // delete the old scores, they append otherwise
@@ -880,11 +914,14 @@ $(document).ready(function(){
                     }
 
 
-                                                                            // want to play again?
+                                                                            // want to play again? (continue)
 
-                    var again = confirm("Play again?");
+                    var again = confirm("Continue to next level?");
                     if (again) {
+                        level++;                                            // PROMOTION!  Increases score.
+                        var save_lives = lives;                             // no free lives for promotion!
                         resetRuntime();                                     // reset state variables, and
+                        lives = save_lives;                                 // HA!!
                         startGame(false);                                   // HAVE FUN BUSTING BRICKS!!
                     }else {
                         bye();
@@ -932,6 +969,8 @@ $(document).ready(function(){
             drawBall();                     // draw in or AROUND START location
             displayScore();                 // 0 0 0
  
+            //  localStorage.removeItem("break-highscores");// just used juring development
+                                                            // to trash local storage quickly
  
             $("#breaker_button").click(function() {
                 startGame(false);
@@ -965,11 +1004,12 @@ html {
   margin: 0;
   padding: 0;
   background:#666;
-  background: -webkit-gradient(linear, left top, left bottom, from(#000), to(#ccc));
   background: -moz-linear-gradient(top,  #000,  #ccc);
   background: -webkit-linear-gradient(top, #000, #ccc);
   background: -ms-linear-gradient(top, #000, #ccc);
   background: -o-linear-gradient(top, #000, #ccc);
+  background: -webkit-gradient(linear, left top, left bottom, from(#000), to(#ccc));
+  background: linear-gradient(top, #000, #ccc);
   color:white;
 }
 
@@ -1013,6 +1053,7 @@ h1{
     background-color:white;
     border:solid black; 
     -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
     border-radius: 5px;
     -moz-box-shadow: 10px 10px 5px black;
     -webkit-box-shadow: 10px 10px 5px black;
@@ -1023,6 +1064,7 @@ h1{
  #myCanvas { 
     background-color:white;
     border:solid black; 
+    -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
     -moz-box-shadow: 10px 10px 5px black;
