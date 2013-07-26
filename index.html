@@ -16,14 +16,24 @@
         I was doing this on-line course
             https://www.udacity.com/course/viewer#!/c-cs255/l-49464373/e-73862325/m-86304040
         Dont bother, it sucks.  THEY make mistakes on EVERY example in the tutition.
+        So I went searching GOOGLE for bits and bobs to learn some game programming
+        and came up with this.
         
-        It does a whole bunch of things differently  than the first
-        cuts from bits and bobs from the net.  notably restarts from
-        missed the ball.  I introduced the concept of n LIVES.
-        It will also restart after a win if the player wishes.
+        This does a whole bunch of things differently  than the first
+        cuts from bits and bobs from the net. I was interested in game
+        programming techniques to discover that the people who were
+        publishing "HOW TO" game coding had very poor overall programming skills.
+
+        So I took what I could from the world of game design, and applied
+        some more traditional techniques and structure to the overall
+        development.  Still a great learning experience for me.  I am loving
+        HTML5 and CSS3.
+
+
         Has toggling features, HTML5 local.storage and a deal of CSS3 control.
-        It mow validates HTML5 and CSS3.
-        I re-wrote most of in-line concept code into a modular design.
+        This validates HTML5 and CSS3.
+        I wrote most of in-line concept code into a modular design.
+
         Start and stopping controls are now available.
         Finished the board being randomly generated with a half decent
         weighting algorithm.  The localStorage of high scores is finished,
@@ -60,14 +70,45 @@ $(document).ready(function(){
             // dump it for this project just to save a little space
             // on the mobile devices.
 
+            var unit_test = false;                                      // switch between test mode
+
+
+            // -------------- Graphics section ---------------------
+            // OK.  We bring the gradient graphical calculations
+            // up a level and make them global to this namespace.
+            // the scope is not an issue (although we could re-use
+            // the schemes in future expabnsions, but the computational
+            // overhead IS an issue.  I have noticed in the general
+            // 'HOW TO' games world, that these things seem to be
+            // re-computed over and over and over.  Some thousands of times
+            // in some instances.  I am bringing this lot up here
+            // so that the calculations can be done ONCE, on page load,
+            // and never, ever again.
+
+
             var context = canvas.getContext('2d');                      // this is a crap naming convention
                                                                         // and should really be changed
                                                                         // before <canvas> gets any more
                                                                         // complicated.
 
-            var unit_test = false;                                      // switch between test mode
-                                                                        // and game mode!
 
+            // gradient for the End Game Banner texts
+
+            var end_gradient = context.createLinearGradient(5, 50, 500, 20);
+
+            end_gradient.addColorStop(0.1,  '#F82E23');
+            end_gradient.addColorStop(0.25, '#E2E651');
+            end_gradient.addColorStop(0.5,  '#55D268');
+            end_gradient.addColorStop(0.75, '#5A77DA');
+            end_gradient.addColorStop(1,    '#C84489');
+
+            // brick gradients
+
+
+            var yellow_gradient = context.createLinearGradient(5, 50, 500, 20);
+            
+
+            // ------------ audio section ----------------
             // get the sound effects from the markup below
             // both WAV and MP3 versions of SFX are presented
             // to the HTML5 markup.  This will enable sounds
@@ -95,6 +136,10 @@ $(document).ready(function(){
                                                                         // made the missus drop a glass
                                                                         // of plonk, or you couldn't
                                                                         // hear the applause!!!
+
+
+
+            // --------------  general game globals section ----------
 
             var bonus_time          = 900;                              // 15 minutes
             var lives               = 3                                 // 3 misses, then death
@@ -155,6 +200,8 @@ $(document).ready(function(){
             var brick_width         = canvas.width/bricks_per_row;      // device type
 
        
+
+            // end PROPERTIES ------ BEGIN METHODS ---------------------
 
 
             //---------------------
@@ -254,14 +301,14 @@ $(document).ready(function(){
                             [0,0,0,0,0,0,0,0,0,0],                      // we make it winnable, but
                             [0,0,0,0,0,1,0,0,0,0]];                     // challenging.  all well and good,
                 } else {                                                // unless you are testing several
-                    // bricks  = [                                      // logical branching conditions
-                    //        [1,1,0,1,2,2,1,1,3,1],                    // in the code! To test "what happens
-                    //        [2,2,1,0,1,2,3,3,0,1],                    // when I win can take hours using
-                    //        [1,1,0,3,2,1,1,2,2,2],                    // real game maps!  so we inject
-                    //        [1,2,3,0,1,2,3,0,1,2],                    // a simple little one brick
-                    //        [0,0,0,0,0,0,0,0,0,0],                    // universe into our unit test
-                    //        [0,1,0,0,3,0,3,0,0,2]                     // setup.  just enough to test MISS,
-                    //        ];                                        // HIT and WIN.
+                                                                        // logical branching conditions
+                                                                        // in the code! To test "what happens
+                                                                        // when I win can take hours using
+                                                                        // real game maps!  so we inject
+                                                                        // a simple little one brick
+                                                                        // universe into our unit test
+                                                                        // setup.  just enough to test MISS,
+                                                                        // HIT and WIN.
                                                                         // what we can do using this mapping
                                                                         // construct is to introduce 'levels'
                                                                         // easily, and a user driven 'wall'
@@ -683,7 +730,7 @@ $(document).ready(function(){
                 paddle_width        = 20;                               // there is a bug in these
                 paddle_height       = 18;                               // numbers somewhere.  sometimes
                 paddle_size         = 4;                                // the ball can rest on the underside
-                // of the paddle for a moment????
+                                                                        // of the paddle for a moment????
                 paddle_deltax       = 0;                                // pixel offsets when moving
                 paddle_deltay       = 0;                                // the paddle
 
@@ -965,12 +1012,10 @@ $(document).ready(function(){
             setBrickWorld();                // first time around, draw the bricks
             createBricks();                 // just something to look at until the GO
                                             // button is hit
-            drawPaddle();                   // draw in START location STATIC
             drawBall();                     // draw in or AROUND START location
             displayScore();                 // 0 0 0
+            drawPaddle();                   // draw in START location STATIC
  
-            //  localStorage.removeItem("break-highscores");// just used juring development
-                                                            // to trash local storage quickly
  
             $("#breaker_button").click(function() {
                 startGame(false);
