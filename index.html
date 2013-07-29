@@ -90,7 +90,19 @@ $(document).ready(function(){
                                                                         // and should really be changed
                                                                         // before <canvas> gets any more
                                                                         // complicated.
-
+            // createLinearGradient() method
+            //
+            // It expects four parameters that define a line (x1, y1, x2, y2). 
+            // The colors will be perpendicular to this line, so if you want 
+            // horizontal color bands, draw a vertical line. If you want 
+            // vertical color bands, draw a horizontal line. The line typically 
+            // takes up the entire width or height of the element, but it doesn't 
+            // have to. If the line is smaller than the image, the excess area 
+            // will be automatically assigned the color from the nearest end 
+            // of the gradient. It is a great pity one cannot BIND a gradient
+            // to an already defined graphic, and let the gradient assume the
+            // inherited cartesian co-ordinates.  Re-stateing the co-ordinates
+            // is a pain and prone to error.
 
             // gradient for the End Game Banner texts
 
@@ -103,9 +115,12 @@ $(document).ready(function(){
             end_gradient.addColorStop(1,    '#C84489');
 
             // brick gradients
+            //
+            // bugger.  We can't do this for bricks as we don't know where
+            // they are going to be in advance.  This is the IDEAL reason
+            // to implement object binding as I mentioned just up there
+            // a bit.  This is a pain in the arse.
 
-
-            var yellow_gradient = context.createLinearGradient(5, 50, 500, 20);
             
 
             // ------------ audio section ----------------
@@ -510,7 +525,7 @@ $(document).ready(function(){
                 // check to see if we are hitting anything at the top
 
                 if ((ball_y + ball_deltay - ball_size < 0) ||
-                    collisionyWithBricks()) {
+                    bangBrickY()) {
                     bounce.play();
                     ball_deltay = -ball_deltay;
                 }
@@ -527,7 +542,7 @@ $(document).ready(function(){
 
                 if ((ball_x + ball_deltax - ball_size < 0) ||
                     (ball_x + ball_deltax + ball_size > canvas.width) ||
-                    collisionxWithBricks()) {
+                    bangBrickX()) {
                         bounce.play();
                         ball_deltax = -ball_deltax;
                 } 
@@ -575,8 +590,8 @@ $(document).ready(function(){
 
 
 
-            //-------------------------------
-            function collisionxWithBricks() {
+            //---------------------
+            function bangBrickX() {
 
                 // now the REALLY FUN BIT! Brick COLLISIONS!!
 
@@ -622,8 +637,8 @@ $(document).ready(function(){
 
 
 
-            //------------------------------
-            function collisionyWithBricks(){
+            //--------------------
+            function bangBrickY(){
 
                 var hit_y = false;
 
@@ -1017,30 +1032,36 @@ $(document).ready(function(){
             drawPaddle();                   // draw in START location STATIC
  
  
+
+                                            // ypou can press the button, or
             $("#breaker_button").click(function() {
-                startGame(false);
+                startGame(false);       
             });
 
+
         });
-    </script>
+
+</script>
 
 
 <style type="text/css">
 
 
-/* This is the CSS3 description of the post-it stickies
+/* This came from the CSS3 description of the post-it stickies
  * menu system that is driving my RETRO HTML5 movie 
  * demonstrators.  It shows a number od CSS3 techniques.
  * At the moment it does not cater for ANY IE at all.
- * That's not my object in this little experiment.
+ * (Now it does cater for IE 9+)
  *
  * The system is to be PURE HTML5 and CSS3 which means
- * NO Javascript
  * NO formatting in the HTML viz
  *    NO <br><hr>
  *    NO TABLES (spit)
  *    NO inlines (spit again)
  *    NO .giff, .jpeg, any graphic images to decorate.
+ *
+ * Obviously this experiment is a LOT different than my
+ * movie theatre, but shows how code can be re-used.
  *
  */
 
