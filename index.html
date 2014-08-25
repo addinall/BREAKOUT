@@ -114,13 +114,6 @@ $(document).ready(function(){
             end_gradient.addColorStop(0.75, '#5A77DA');
             end_gradient.addColorStop(1,    '#C84489');
 
-            // brick gradients
-            //
-            // bugger.  We can't do this for bricks as we don't know where
-            // they are going to be in advance.  This is the IDEAL reason
-            // to implement object binding as I mentioned just up there
-            // a bit.  This is a pain in the arse.
-
             
 
             // ------------ audio section ----------------
@@ -204,6 +197,17 @@ $(document).ready(function(){
             // looking, but when the game engine is working
             // we will tart them up.
 
+            // brick gradients
+            //
+            // bugger.  We can't do this for bricks as we don't know where
+            // they are going to be in advance.  This is the IDEAL reason
+            // to implement object binding as I mentioned just up there
+            // a bit.  This is a pain in the arse.
+            //
+            // Yes we can, sort of.  I am going to desctibe a brick object
+            // that will encapsulate the information.  Not REALLY what I 
+            // wanted, but closer to the rub.
+
 
             var bricks = [];                                            // empty to start.  This array
                                                                         // is filled from two locations,
@@ -213,6 +217,9 @@ $(document).ready(function(){
             var rows_of_bricks      = 6;                                // magic number WILL change
             var brick_height        = 22;                               // based on difficulty level or
             var brick_width         = canvas.width/bricks_per_row;      // device type
+
+
+
 
        
 
@@ -797,6 +804,7 @@ $(document).ready(function(){
                 ticks = 0;                          // elapsed time to zero
                 context.lineWidth=1;                // make sure we have skinny lines
                 lives = 3;                          // reset full live balance
+                level = 1;                          // reset game level to start
                 won = false;                        // stops endGame(won) getting confused!
                 score = 0;                          // we no longer just 'drop out' of the page, reset this
                 setBrickWorld();                    // reset the brick wall
@@ -982,8 +990,10 @@ $(document).ready(function(){
                     if (again) {
                         level++;                                            // PROMOTION!  Increases score.
                         var save_lives = lives;                             // no free lives for promotion!
+                        var save_level = level;                             // save game level
                         resetRuntime();                                     // reset state variables, and
                         lives = save_lives;                                 // HA!!
+                        level = save_level;                                 // reset game level
                         startGame(false);                                   // HAVE FUN BUSTING BRICKS!!
                     }else {
                         bye();
@@ -1033,7 +1043,6 @@ $(document).ready(function(){
  
  
 
-                                            // ypou can press the button, or
             $("#breaker_button").click(function() {
                 startGame(false);       
             });
